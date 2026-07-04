@@ -1,8 +1,10 @@
 {
-  "dependencies": {
-    "prettier": "^3.9.4"
-  },
   "scripts": {
+    "start": "serve .",
     "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.9.4",
+    "serve": "^14.2.0"
   }
 }

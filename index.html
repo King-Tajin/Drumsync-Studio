@@ -23,7 +23,19 @@
             <p>MIDI-to-drum light mapper</p>
           </div>
         </div>
-        <div class="header-status" id="fileStatus">No file loaded</div>
+        <div
+          class="header-right"
+          style="display: flex; align-items: center; gap: 1rem"
+        >
+          <div class="header-status" id="fileStatus">No file loaded</div>
+          <a
+            href="https://github.com/King-Tajin/Drumsync-Studio"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn"
+            >Source Code</a
+          >
+        </div>
       </header>
 
       <main class="layout">
@@ -251,7 +263,7 @@
             <label class="drop-zone" id="dropZone">
               <input type="file" id="fileInput" accept=".mid,.midi" hidden />
               <span id="dropLabel"
-                >Drop a .mid file here or click to browse</span
+                >Drop a ".mid" file here or click to browse</span
               >
             </label>
             <div class="file-meta" id="fileMeta"></div>
@@ -264,7 +276,8 @@
               <button class="btn" id="stopBtn" disabled>Stop</button>
               <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
             </div>
-            <label for="seekBar"></label><input
+            <label for="seekBar"></label
+            ><input
               type="range"
               id="seekBar"
               min="0"
