@@ -41,16 +41,18 @@
   background-color: var(--accent);
 }
 
-html, body {
+html,
+body {
   margin: 0;
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
 }
 
-h1, h2 {
-  font-family: 'Oswald', 'Inter', sans-serif;
+h1,
+h2 {
+  font-family: "Oswald", "Inter", sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0;
@@ -77,7 +79,7 @@ h1, h2 {
 }
 
 .brand-mark {
-  font-family: 'Oswald', sans-serif;
+  font-family: "Oswald", sans-serif;
   font-weight: 700;
   font-size: 20px;
   color: var(--bg);
@@ -104,7 +106,7 @@ h1, h2 {
 }
 
 .header-status {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 12px;
   color: var(--text-dim);
   border: 1px solid var(--panel-border);
@@ -132,7 +134,7 @@ h1, h2 {
   color: var(--text);
   padding: 8px 12px;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 13px;
 }
 
@@ -190,7 +192,9 @@ h1, h2 {
   fill: var(--drum-fill);
   stroke: var(--drum-fill-hi);
   stroke-width: 2;
-  transition: fill 220ms ease-out, filter 220ms ease-out;
+  transition:
+    fill 220ms ease-out,
+    filter 220ms ease-out;
   cursor: pointer;
 }
 
@@ -198,7 +202,9 @@ h1, h2 {
   stroke: var(--rim);
   stroke-width: 5;
   stroke-linecap: round;
-  transition: stroke 180ms ease-out, filter 180ms ease-out;
+  transition:
+    stroke 180ms ease-out,
+    filter 180ms ease-out;
   cursor: pointer;
 }
 
@@ -206,13 +212,16 @@ h1, h2 {
   fill: var(--drum-fill-hi);
   stroke: var(--rim);
   stroke-width: 2;
-  transition: fill 180ms ease-out, filter 180ms ease-out;
+  transition:
+    fill 180ms ease-out,
+    filter 180ms ease-out;
   cursor: pointer;
 }
 
 .drum.lit .drum-head {
   fill: var(--accent);
-  filter: drop-shadow(0 0 18px var(--accent-soft)) drop-shadow(0 0 34px var(--accent-soft));
+  filter: drop-shadow(0 0 18px var(--accent-soft))
+    drop-shadow(0 0 34px var(--accent-soft));
 }
 
 .drum.lit .rod-line {
@@ -225,7 +234,8 @@ h1, h2 {
   filter: drop-shadow(0 0 18px var(--accent-soft));
 }
 
-.stand-bar, .stand-leg {
+.stand-bar,
+.stand-leg {
   stroke: var(--rim);
   stroke-width: 4;
 }
@@ -245,7 +255,7 @@ h1, h2 {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-weight: 500;
 }
 
@@ -291,17 +301,20 @@ h1, h2 {
   font-size: 13px;
   color: var(--text-dim);
   cursor: pointer;
-  transition: border-color 150ms ease, color 150ms ease;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
-.drop-zone:hover, .drop-zone.drag-over {
+.drop-zone:hover,
+.drop-zone.drag-over {
   border-color: var(--accent);
   color: var(--text);
 }
 
 .file-meta {
   margin-top: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 12px;
   color: var(--text-dim);
   white-space: pre-line;
@@ -320,11 +333,13 @@ h1, h2 {
   color: var(--text);
   padding: 8px 16px;
   border-radius: 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 150ms ease, color 150ms ease;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 .btn:hover:not(:disabled) {
@@ -338,7 +353,7 @@ h1, h2 {
 
 .time-display {
   margin-left: auto;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 12px;
   color: var(--text-dim);
 }
@@ -373,12 +388,14 @@ input[type="range"] {
   background: transparent;
   border: none;
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   padding: 9px 6px;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .segment.active {
@@ -430,7 +447,7 @@ input[type="range"] {
   border: 1px solid var(--panel-border);
   border-radius: 14px;
   padding: 4px 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 11px;
   color: var(--text);
   cursor: grab;
