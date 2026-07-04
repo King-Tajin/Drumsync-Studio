@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drumsync Studio</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">DS</span>
+      <div class="brand-text">
+        <h1>KING TAJIN'S DRUMSYNC STUDIO</h1>
+        <p>MIDI-to-drum light mapper</p>
+      </div>
+    </div>
+    <div class="header-status" id="fileStatus">No file loaded</div>
+  </header>
+
+  <main class="layout">
+
+    <section class="rig-panel">
+      <div class="rig-stage" id="rigStage">
+        <svg id="rigSvg" viewBox="0 0 1340 680" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(-75,0)">
+            <line class="stand-bar" x1="150" y1="565" x2="1030" y2="565"></line>
+            <line class="stand-leg" x1="200" y1="535" x2="200" y2="565"></line>
+            <line class="stand-leg" x1="980" y1="535" x2="980" y2="565"></line>
+            <line class="stand-leg" x1="570" y1="528" x2="570" y2="565"></line>
+
+            <g class="drum" data-zone="tom2">
+              <ellipse class="drum-shadow" cx="385" cy="382" rx="70" ry="28"></ellipse>
+              <circle class="drum-rim" cx="385" cy="310" r="75"></circle>
+              <circle class="drum-head" cx="385" cy="310" r="64"></circle>
+            </g>
+
+            <g class="drum" data-zone="tom4">
+              <ellipse class="drum-shadow" cx="760" cy="382" rx="70" ry="28"></ellipse>
+              <circle class="drum-rim" cx="760" cy="310" r="75"></circle>
+              <circle class="drum-head" cx="760" cy="310" r="64"></circle>
+            </g>
+
+            <g class="drum" data-zone="tom1">
+              <ellipse class="drum-shadow" cx="200" cy="532" rx="88" ry="32"></ellipse>
+              <circle class="drum-rim" cx="200" cy="460" r="95"></circle>
+              <circle class="drum-head" cx="200" cy="460" r="82"></circle>
+            </g>
+
+            <g class="drum" data-zone="tom5">
+              <ellipse class="drum-shadow" cx="980" cy="532" rx="88" ry="32"></ellipse>
+              <circle class="drum-rim" cx="980" cy="460" r="95"></circle>
+              <circle class="drum-head" cx="980" cy="460" r="82"></circle>
+            </g>
+
+            <g class="drum" data-zone="cymbalRod">
+              <line class="rod-line" x1="1015" y1="370" x2="1062" y2="298"></line>
+              <ellipse class="rod-cymbal" cx="1064" cy="288" rx="40" ry="26" transform="rotate(-18 1064 288)"></ellipse>
+            </g>
+
+            <g class="drum" data-zone="tom3">
+              <ellipse class="drum-shadow" cx="570" cy="548" rx="55" ry="24"></ellipse>
+              <circle class="drum-rim" cx="570" cy="488" r="58"></circle>
+              <circle class="drum-head" cx="570" cy="488" r="48"></circle>
+            </g>
+
+            <g class="drum" data-zone="bass">
+              <ellipse class="drum-shadow" cx="1230" cy="532" rx="108" ry="36"></ellipse>
+              <circle class="drum-rim" cx="1230" cy="450" r="118"></circle>
+              <circle class="drum-head" cx="1230" cy="450" r="103"></circle>
+            </g>
+          </g>
+        </svg>
+
+        <div class="drop-slot" data-zone="tom2" style="left:16%; top:1.5%; width:15%; height:24%;">
+          <h3>Tom 2</h3>
+          <div class="chip-list" data-zone="tom2"></div>
+        </div>
+
+        <div class="drop-slot" data-zone="tom4" style="left:44%; top:1.5%; width:15%; height:24%;">
+          <h3>Tom 4</h3>
+          <div class="chip-list" data-zone="tom4"></div>
+        </div>
+
+        <div class="drop-slot" data-zone="cymbalRod" style="left:65%; top:1%; width:18%; height:24%;">
+          <h3>Cymbal</h3>
+          <div class="chip-list" data-zone="cymbalRod"></div>
+        </div>
+
+        <div class="drop-slot" data-zone="tom1" style="left:0%; top:86%; width:19%; height:14%;">
+          <h3>Tom 1</h3>
+          <div class="chip-list" data-zone="tom1"></div>
+        </div>
+
+        <div class="drop-slot" data-zone="tom3" style="left:28.5%; top:86%; width:19%; height:14%;">
+          <h3>Tom 3</h3>
+          <div class="chip-list" data-zone="tom3"></div>
+        </div>
+
+        <div class="drop-slot" data-zone="tom5" style="left:58%; top:86%; width:19%; height:14%;">
+          <h3>Tom 5</h3>
+          <div class="chip-list" data-zone="tom5"></div>
+        </div>
+
+        <div class="drop-slot" data-zone="bass" style="left:77.5%; top:91%; width:16%; height:14%;">
+          <h3>Bass drum</h3>
+          <div class="chip-list" data-zone="bass"></div>
+        </div>
+      </div>
+      <p class="rig-hint">Drag a sound onto a drum's slot to assign it. Click a drum to preview.</p>
+    </section>
+
+    <aside class="control-panel">
+
+      <div class="panel-block">
+        <h2>Find MIDI files</h2>
+        <form action="https://bitmidi.com/search" method="get" target="_blank" class="search-form">
+          <input type="text" name="q" placeholder="Search BitMidi..." required>
+          <button type="submit" class="btn">Search</button>
+        </form>
+      </div>
+
+      <div class="panel-block">
+        <h2>Midi file</h2>
+        <label class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".mid,.midi" hidden>
+          <span id="dropLabel">Drop a .mid file here or click to browse</span>
+        </label>
+        <div class="file-meta" id="fileMeta"></div>
+      </div>
+
+      <div class="panel-block">
+        <h2>Transport</h2>
+        <div class="transport-row">
+          <button class="btn" id="playBtn" disabled>Play</button>
+          <button class="btn" id="stopBtn" disabled>Stop</button>
+          <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+        </div>
+        <input type="range" id="seekBar" min="0" max="1000" value="0" disabled>
+        <div class="volume-row">
+          <label for="volumeSlider">Volume</label>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.75">
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <h2>Audio mode</h2>
+        <div class="segmented" id="audioModeToggle">
+          <button class="segment active" data-mode="all">All instruments</button>
+          <button class="segment" data-mode="mapped">Mapped only</button>
+        </div>
+        <p class="hint-text">Lights only ever trigger for drums you've mapped.</p>
+      </div>
+
+      <div class="panel-block">
+        <h2>Available sounds</h2>
+        <p class="hint-text">Load a MIDI file to see its percussion sounds here. Drag any of these onto a drum in the rig.</p>
+        <div class="palette" id="palette"></div>
+      </div>
+
+    </aside>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
