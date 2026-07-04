@@ -186,7 +186,7 @@
             <div
               class="drop-slot"
               data-zone="tom1"
-              style="left: 0%; top: 86%; width: 19%; height: 14%"
+              style="left: 0; top: 86%; width: 19%; height: 14%"
             >
               <h3>Tom 1</h3>
               <div class="chip-list" data-zone="tom1"></div>
@@ -234,12 +234,14 @@
               target="_blank"
               class="search-form"
             >
-              <input
-                type="text"
-                name="q"
-                placeholder="Search BitMidi..."
-                required
-              />
+              <label>
+                <input
+                  type="text"
+                  name="q"
+                  placeholder="Search BitMidi..."
+                  required
+                />
+              </label>
               <button type="submit" class="btn">Search</button>
             </form>
           </div>
@@ -262,7 +264,7 @@
               <button class="btn" id="stopBtn" disabled>Stop</button>
               <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
             </div>
-            <input
+            <label for="seekBar"></label><input
               type="range"
               id="seekBar"
               min="0"
