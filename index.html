@@ -23,10 +23,7 @@
             <p>MIDI-to-drum light mapper</p>
           </div>
         </div>
-        <div
-          class="header-right"
-          style="display: flex; align-items: center; gap: 1rem"
-        >
+        <div class="header-right">
           <div class="header-status" id="fileStatus">No file loaded</div>
           <a
             href="https://github.com/King-Tajin/Drumsync-Studio"
@@ -251,6 +248,7 @@
                   type="text"
                   name="q"
                   placeholder="Search BitMidi..."
+                  aria-label="Search BitMidi"
                   required
                 />
               </label>
@@ -276,10 +274,10 @@
               <button class="btn" id="stopBtn" disabled>Stop</button>
               <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
             </div>
-            <label for="seekBar"></label
-            ><input
+            <input
               type="range"
               id="seekBar"
+              aria-label="Seek"
               min="0"
               max="1000"
               value="0"
@@ -312,12 +310,19 @@
           </div>
 
           <div class="panel-block">
-            <h2>Available sounds</h2>
+            <h2>Available instruments</h2>
             <p class="hint-text">
-              Load a MIDI file to see its percussion sounds here. Drag any of
-              these onto a drum in the rig.
+              Load a MIDI file to see its instrument sounds here. Drag any
+              percussion sound onto a drum in the rig.
             </p>
             <div class="palette" id="palette"></div>
+            <details class="melodic-dropdown" id="melodicDropdown" hidden>
+              <summary>
+                Melodic instruments
+                <span id="melodicCount">(0)</span>
+              </summary>
+              <div class="melodic-list" id="melodicList"></div>
+            </details>
           </div>
         </aside>
       </main>

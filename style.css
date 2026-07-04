@@ -114,6 +114,12 @@ h2 {
   border-radius: 6px;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .layout {
   flex: 1;
   display: grid;
@@ -469,6 +475,58 @@ input[type="range"] {
 
 .chip-remove:hover {
   color: var(--danger);
+}
+
+.chip-static {
+  cursor: default;
+}
+
+.melodic-dropdown {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.melodic-dropdown summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+  padding: 10px 12px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.melodic-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.melodic-dropdown summary::after {
+  content: "▸";
+  transition: transform 150ms ease;
+}
+
+.melodic-dropdown[open] summary {
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.melodic-dropdown[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.melodic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  max-height: 160px;
+  overflow-y: auto;
 }
 
 @media (max-width: 900px) {

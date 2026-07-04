@@ -247,6 +247,7 @@ ZONES.forEach((z) => {
 });
 
 let songDrumNotes = [];
+let songMelodicPrograms = [];
 let fileLoaded = false;
 
 let audioCtx = null;
@@ -277,6 +278,9 @@ const els = {
   volumeSlider: document.getElementById("volumeSlider"),
   audioModeToggle: document.getElementById("audioModeToggle"),
   palette: document.getElementById("palette"),
+  melodicDropdown: document.getElementById("melodicDropdown"),
+  melodicList: document.getElementById("melodicList"),
+  melodicCount: document.getElementById("melodicCount"),
   rigSvg: document.getElementById("rigSvg"),
 };
 
@@ -887,6 +891,7 @@ function loadMidiFile(file) {
     bpm = (midi.header.tempos[0] && midi.header.tempos[0].bpm) || 120;
 
     songDrumNotes = [...drumNoteSet].sort((a, b) => a - b);
+    songMelodicPrograms = [...programSet].sort((a, b) => a - b);
     fileLoaded = true;
 
     ZONES.forEach((z) => {
@@ -984,6 +989,34 @@ function noteLabel(note) {
   return GM_NAME_BY_NOTE.get(note) || `Percussion ${note}`;
 }
 
+function instrumentLabel(program) {
+  const raw = GM_INSTRUMENT_NAMES[program] || `Program ${program}`;
+  return raw
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function makeInstrumentChip(label) {
+  const chip = document.createElement("div");
+  chip.className = "chip chip-static";
+
+  const span = document.createElement("span");
+  span.textContent = label;
+  chip.appendChild(span);
+
+  return chip;
+}
+
+function renderMelodicList() {
+  els.melodicList.innerHTML = "";
+  songMelodicPrograms.forEach((program) => {
+    els.melodicList.appendChild(makeInstrumentChip(instrumentLabel(program)));
+  });
+  els.melodicCount.textContent = `(${songMelodicPrograms.length})`;
+  els.melodicDropdown.hidden = songMelodicPrograms.length === 0;
+}
+
 function renderPalette() {
   els.palette.innerHTML = "";
   if (!fileLoaded) return;
@@ -1009,6 +1042,7 @@ function renderZoneLists() {
 function renderMappingUI() {
   renderPalette();
   renderZoneLists();
+  renderMelodicList();
 }
 
 function wireZoneDropTargets() {
