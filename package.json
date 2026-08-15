@@ -1,10 +1,12 @@
 {
   "scripts": {
     "start": "serve .",
-    "format": "prettier --write ."
+    "format": "prettier --write . && svgo -f . -r"
   },
   "devDependencies": {
-    "prettier": "^3.9.4",
-    "serve": "^14.2.0"
-  }
+    "prettier": "^3.9.6",
+    "serve": "^14.2.6",
+    "svgo": "^4.0.2"
+  },
+  "packageManager": "pnpm@11.21.0"
 }
