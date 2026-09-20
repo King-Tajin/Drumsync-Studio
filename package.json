@@ -4,9 +4,9 @@
     "format": "prettier --write . && svgo -f . -r"
   },
   "devDependencies": {
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.8",
     "serve": "^14.2.6",
-    "svgo": "^4.0.2"
+    "svgo": "^4.1.0"
   },
-  "packageManager": "pnpm@11.21.0"
+  "packageManager": "pnpm@12.4.2"
 }

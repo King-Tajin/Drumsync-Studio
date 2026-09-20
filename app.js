@@ -5,6 +5,7 @@ import {
   preloadInstruments,
   playDrumSound,
   playMelodic,
+  stopAllSounds,
 } from "./audio-engine.js";
 import {
   resetMapping,
@@ -60,6 +61,7 @@ const els = {
   fileInput: document.getElementById("fileInput"),
   dropLabel: document.getElementById("dropLabel"),
   fileMeta: document.getElementById("fileMeta"),
+  fileError: document.getElementById("fileError"),
   playBtn: document.getElementById("playBtn"),
   stopBtn: document.getElementById("stopBtn"),
   seekBar: document.getElementById("seekBar"),
@@ -67,6 +69,16 @@ const els = {
   volumeSlider: document.getElementById("volumeSlider"),
   audioModeToggle: document.getElementById("audioModeToggle"),
 };
+
+const LOOKAHEAD_SECONDS = 0.2;
+const TICK_MS = 25;
+const PARSER_MISSING_MESSAGE =
+  "The MIDI parser failed to load. Check your connection and reload the page.";
+const SYNTH_FALLBACK_MESSAGE =
+  "Some instrument sounds couldn't load, using basic synth. Reload the file to retry.";
+const UNREADABLE_MESSAGE = "That file couldn't be read as a MIDI file.";
+
+class MidiLoadError extends Error {}
 
 let audioMode = "all";
 let notesFlat = [];
@@ -76,13 +88,16 @@ let isPlaying = false;
 let nextNoteIndex = 0;
 let ctxStartTime = 0;
 let startOffset = 0;
-let scheduledTimeouts = [];
-let rafId = null;
+let pendingFlashes = [];
+let timerId = null;
 let isScrubbing = false;
+let pausedByVisibility = false;
+let loadToken = 0;
 
 function formatTime(t) {
-  const m = Math.floor(t / 60);
-  const s = Math.floor(t % 60);
+  const safe = Number.isFinite(t) && t > 0 ? t : 0;
+  const m = Math.floor(safe / 60);
+  const s = Math.floor(safe % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
@@ -93,61 +108,84 @@ function updateTimeDisplay(elapsed) {
   }
 }
 
-function clearScheduled() {
-  scheduledTimeouts.forEach((t) => clearTimeout(t));
-  scheduledTimeouts = [];
+function clearTimer() {
+  if (timerId !== null) {
+    clearInterval(timerId);
+    timerId = null;
+  }
 }
 
-function stopPlayback(resetPosition) {
+function startTimer() {
+  clearTimer();
+  timerId = setInterval(tick, TICK_MS);
+}
+
+function rewindToPosition(position) {
+  let index = Math.min(nextNoteIndex, notesFlat.length);
+  while (index > 0 && notesFlat[index - 1].time >= position) index--;
+  nextNoteIndex = index;
+}
+
+function stopPlayback(resetPosition, silence = true) {
+  if (isPlaying && !resetPosition) {
+    const now = getAudioContext().currentTime;
+    startOffset += now - ctxStartTime;
+    flushFlashes(now);
+  }
   isPlaying = false;
-  if (rafId) cancelAnimationFrame(rafId);
-  clearScheduled();
+  clearTimer();
+  pendingFlashes = [];
+  if (silence) stopAllSounds();
   els.playBtn.textContent = "Play";
   if (resetPosition) {
     startOffset = 0;
     nextNoteIndex = 0;
     updateTimeDisplay(0);
+    return;
   }
+  startOffset = Math.min(startOffset, duration);
+  if (silence) rewindToPosition(startOffset);
+  updateTimeDisplay(startOffset);
 }
 
-function scheduleTrigger(
-  note,
-  vel,
-  delaySeconds,
-  isDrum,
-  noteDuration,
-  program
-) {
-  const when = getAudioContext().currentTime + Math.max(0, delaySeconds);
-
+function scheduleTrigger(note, vel, when, isDrum, noteDuration, program) {
   if (isDrum) {
     const zoneIds = zonesForNote(note);
     if (audioMode === "all" || zoneIds.length > 0) {
       playDrumSound(note, when, vel);
     }
-    if (zoneIds.length > 0) {
-      const ms = Math.max(0, delaySeconds) * 1000;
-      scheduledTimeouts.push(setTimeout(() => zoneIds.forEach(flashZone), ms));
-    }
+    if (zoneIds.length > 0) pendingFlashes.push({ when, zoneIds });
   } else if (audioMode === "all") {
     playMelodic(note, when, vel, noteDuration, program);
   }
 }
 
-function loop() {
-  if (!isPlaying) return;
-  const elapsed = startOffset + (getAudioContext().currentTime - ctxStartTime);
+function flushFlashes(now) {
+  const audioCtx = getAudioContext();
+  const latency = audioCtx.outputLatency || audioCtx.baseLatency || 0;
+  const remaining = [];
+  pendingFlashes.forEach((flash) => {
+    if (flash.when + latency <= now) flash.zoneIds.forEach(flashZone);
+    else remaining.push(flash);
+  });
+  pendingFlashes = remaining;
+}
 
-  const lookahead = 0.15;
+function tick() {
+  if (!isPlaying) return;
+  const now = getAudioContext().currentTime;
+  const elapsed = startOffset + (now - ctxStartTime);
+
   while (
     nextNoteIndex < notesFlat.length &&
-    notesFlat[nextNoteIndex].time <= elapsed + lookahead
+    notesFlat[nextNoteIndex].time <= elapsed + LOOKAHEAD_SECONDS
   ) {
     const n = notesFlat[nextNoteIndex];
+    const when = Math.max(now, ctxStartTime + (n.time - startOffset));
     scheduleTrigger(
       n.midi,
       n.velocity || 0.8,
-      n.time - elapsed,
+      when,
       n.isDrum,
       n.duration,
       n.program
@@ -155,14 +193,12 @@ function loop() {
     nextNoteIndex++;
   }
 
-  updateTimeDisplay(elapsed);
+  flushFlashes(now);
+  updateTimeDisplay(Math.min(elapsed, duration));
 
-  if (elapsed >= duration) {
-    stopPlayback(true);
-    return;
+  if (elapsed >= duration && pendingFlashes.length === 0) {
+    stopPlayback(true, false);
   }
-
-  rafId = requestAnimationFrame(loop);
 }
 
 function startPlayback() {
@@ -170,7 +206,7 @@ function startPlayback() {
   ctxStartTime = audioCtx.currentTime;
   isPlaying = true;
   els.playBtn.textContent = "Pause";
-  rafId = requestAnimationFrame(loop);
+  startTimer();
 }
 
 function seekTo(fraction) {
@@ -187,77 +223,178 @@ function baseFileMeta() {
   return `Duration ${formatTime(duration)}\nTempo ${Math.round(bpm)} BPM\nNotes ${notesFlat.length}`;
 }
 
-function loadMidiFile(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    /** @type {MidiFile} */
-    const midi = new Midi(reader.result);
-    notesFlat = [];
-    const drumNoteSet = new Set();
-    const programSet = new Set();
+function showLoadError(message) {
+  els.fileError.textContent = message;
+  els.fileError.hidden = false;
+}
 
-    midi.tracks.forEach((track) => {
-      const isDrum =
-        track.channel === 9 ||
-        (track.instrument && track.instrument.percussion);
-      const program = track.instrument ? track.instrument.number : 0;
-      track.notes.forEach((n) => {
-        notesFlat.push({
-          time: n.time,
-          midi: n.midi,
-          velocity: n.velocity,
-          duration: n.duration,
-          isDrum,
-          program,
-        });
-        if (isDrum) drumNoteSet.add(n.midi);
-        else programSet.add(program);
+function clearLoadError() {
+  els.fileError.textContent = "";
+  els.fileError.hidden = true;
+}
+
+function isMidiFile(file) {
+  return /\.midi?$/i.test(file.name);
+}
+
+function pickMidiFile(fileList) {
+  const files = Array.from(fileList);
+  return files.find(isMidiFile) || files[0] || null;
+}
+
+function parseMidiBuffer(buffer) {
+  if (typeof Midi === "undefined") {
+    throw new MidiLoadError(PARSER_MISSING_MESSAGE);
+  }
+  /** @type {MidiFile} */
+  const midi = new Midi(buffer);
+  const notes = [];
+  const drumNoteSet = new Set();
+  const programSet = new Set();
+
+  midi.tracks.forEach((track) => {
+    const isDrum =
+      track.channel === 9 || (track.instrument && track.instrument.percussion);
+    const program = track.instrument ? track.instrument.number : 0;
+    track.notes.forEach((n) => {
+      notes.push({
+        time: n.time,
+        midi: n.midi,
+        velocity: n.velocity,
+        duration: n.duration,
+        isDrum,
+        program,
       });
+      if (isDrum) drumNoteSet.add(n.midi);
+      else programSet.add(program);
     });
-    notesFlat.sort((a, b) => a.time - b.time);
-    duration = midi.duration;
-    bpm = (midi.header.tempos[0] && midi.header.tempos[0].bpm) || 120;
+  });
 
-    resetMapping(
-      [...drumNoteSet].sort((a, b) => a - b),
-      [...programSet].sort((a, b) => a - b)
-    );
+  if (notes.length === 0) {
+    throw new MidiLoadError("This MIDI file doesn't contain any notes.");
+  }
+  notes.sort((a, b) => a.time - b.time);
 
-    stopPlayback(true);
-    els.fileStatus.textContent = file.name;
-    els.dropLabel.textContent = file.name;
-    els.fileMeta.textContent = baseFileMeta();
-    els.playBtn.disabled = true;
-    els.stopBtn.disabled = false;
-    els.seekBar.disabled = false;
+  const lastEnd = notes.reduce(
+    (max, n) => Math.max(max, n.time + n.duration),
+    0
+  );
+  const tempo = midi.header.tempos[0];
+  return {
+    notes,
+    drumNoteSet,
+    programSet,
+    duration:
+      Number.isFinite(midi.duration) && midi.duration > 0
+        ? midi.duration
+        : lastEnd,
+    bpm: (tempo && tempo.bpm) || 120,
+  };
+}
 
-    renderMappingUI();
+function applyParsedMidi(file, parsed) {
+  const token = ++loadToken;
+  notesFlat = parsed.notes;
+  duration = parsed.duration;
+  bpm = parsed.bpm;
 
-    const needsPercussion = drumNoteSet.size > 0;
-    if (programSet.size > 0 || needsPercussion) {
-      els.fileMeta.textContent = `${baseFileMeta()}\nLoading instrument sounds...`;
-      preloadInstruments(programSet, needsPercussion).finally(() => {
-        els.playBtn.disabled = false;
-        els.fileMeta.textContent = baseFileMeta();
-      });
-    } else {
-      els.playBtn.disabled = false;
+  resetMapping(
+    [...parsed.drumNoteSet].sort((a, b) => a - b),
+    [...parsed.programSet].sort((a, b) => a - b)
+  );
+
+  stopPlayback(true);
+  els.fileStatus.textContent = file.name;
+  els.dropLabel.textContent = file.name;
+  els.fileMeta.textContent = baseFileMeta();
+  els.playBtn.disabled = true;
+  els.stopBtn.disabled = false;
+  els.seekBar.disabled = false;
+
+  renderMappingUI();
+
+  if (parsed.programSet.size === 0) {
+    els.playBtn.disabled = false;
+    return;
+  }
+  els.fileMeta.textContent = `${baseFileMeta()}\nLoading instrument sounds...`;
+  preloadInstruments(parsed.programSet).then((instruments) => {
+    if (token !== loadToken) return;
+    els.playBtn.disabled = false;
+    els.fileMeta.textContent = instruments.every(Boolean)
+      ? baseFileMeta()
+      : `${baseFileMeta()}\n${SYNTH_FALLBACK_MESSAGE}`;
+  });
+}
+
+function loadMidiFile(file) {
+  if (!isMidiFile(file)) {
+    showLoadError("Please choose a .mid or .midi file.");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onerror = () => showLoadError("That file couldn't be read.");
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = parseMidiBuffer(reader.result);
+    } catch (error) {
+      showLoadError(
+        error instanceof MidiLoadError ? error.message : UNREADABLE_MESSAGE
+      );
+      return;
     }
+    clearLoadError();
+    applyParsedMidi(file, parsed);
   };
   reader.readAsArrayBuffer(file);
 }
 
+function handleVisibilityChange() {
+  const audioCtx = getAudioContext();
+  if (!audioCtx) return;
+  if (document.hidden) {
+    if (!isPlaying) return;
+    pausedByVisibility = true;
+    clearTimer();
+    audioCtx.suspend();
+    return;
+  }
+  if (!pausedByVisibility) return;
+  pausedByVisibility = false;
+  audioCtx.resume();
+  if (isPlaying) startTimer();
+}
+
 function wireEvents() {
   els.fileInput.addEventListener("change", () => {
-    if (els.fileInput.files[0]) loadMidiFile(els.fileInput.files[0]);
+    const file = pickMidiFile(els.fileInput.files);
+    els.fileInput.value = "";
+    if (file) loadMidiFile(file);
   });
   ["dragover", "dragleave", "drop"].forEach((evt) => {
     els.dropZone.addEventListener(evt, (e) => {
       e.preventDefault();
       if (evt === "dragover") els.dropZone.classList.add("drag-over");
       else els.dropZone.classList.remove("drag-over");
-      if (evt === "drop" && e.dataTransfer.files[0])
-        loadMidiFile(e.dataTransfer.files[0]);
+      if (evt === "drop") {
+        const file = pickMidiFile(e.dataTransfer.files);
+        if (file) loadMidiFile(file);
+      }
+    });
+  });
+  ["dragover", "drop"].forEach((evt) => {
+    window.addEventListener(evt, (e) => {
+      if (
+        !e.dataTransfer ||
+        !Array.from(e.dataTransfer.types).includes("Files")
+      ) {
+        return;
+      }
+      e.preventDefault();
+      if (evt === "dragover" && !els.dropZone.contains(e.target)) {
+        e.dataTransfer.dropEffect = "none";
+      }
     });
   });
 
@@ -291,8 +428,11 @@ function wireEvents() {
     });
   });
 
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
   wireMappingEvents();
 }
 
 renderMappingUI();
 wireEvents();
+if (typeof Midi === "undefined") showLoadError(PARSER_MISSING_MESSAGE);

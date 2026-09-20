@@ -1,18 +1,25 @@
 import { categorize, familyPatchFor, GM_INSTRUMENT_NAMES } from "./gm-data.js";
 
 const SOUNDFONT_KIT = "FluidR3_GM";
+const SMPLR_URL = "https://cdn.jsdelivr.net/npm/smplr@1.0.0/dist/index.mjs";
 
 let audioCtx = null;
 let masterGain = null;
 let noiseBuffer = null;
+let voiceBus = null;
 let smplrModulePromise = null;
-let percussionInstrument = null;
-let percussionLoading = null;
+let smplrAttempts = 0;
 
 const melodicInstruments = new Map();
 const melodicInstrumentsLoading = new Map();
 
 const volumeSlider = document.getElementById("volumeSlider");
+
+function createVoiceBus() {
+  const bus = audioCtx.createGain();
+  bus.connect(masterGain);
+  return bus;
+}
 
 function createNoiseBuffer(ctx) {
   const len = ctx.sampleRate * 1.5;
@@ -30,6 +37,7 @@ export function ensureAudio() {
     masterGain = audioCtx.createGain();
     masterGain.gain.value = parseFloat(volumeSlider.value);
     masterGain.connect(audioCtx.destination);
+    voiceBus = createVoiceBus();
     noiseBuffer = createNoiseBuffer(audioCtx);
   }
   if (audioCtx.state === "suspended") audioCtx.resume();
@@ -41,7 +49,22 @@ export function getAudioContext() {
 }
 
 export function setMasterVolume(value) {
-  if (masterGain) masterGain.gain.value = value;
+  if (!masterGain) return;
+  masterGain.gain.setTargetAtTime(value, audioCtx.currentTime, 0.02);
+}
+
+export function stopAllSounds() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const oldBus = voiceBus;
+  voiceBus = createVoiceBus();
+  oldBus.gain.cancelScheduledValues(now);
+  oldBus.gain.setTargetAtTime(0, now, 0.01);
+  setTimeout(() => oldBus.disconnect(), 300);
+  melodicInstruments.forEach((instrument) => {
+    if (instrument.scheduler) instrument.scheduler.stop();
+    instrument.stop();
+  });
 }
 
 function playKick(when, vel) {
@@ -52,7 +75,7 @@ function playKick(when, vel) {
   osc.frequency.exponentialRampToValueAtTime(40, when + 0.25);
   gain.gain.setValueAtTime(vel, when);
   gain.gain.exponentialRampToValueAtTime(0.001, when + 0.3);
-  osc.connect(gain).connect(masterGain);
+  osc.connect(gain).connect(voiceBus);
   osc.start(when);
   osc.stop(when + 0.32);
 }
@@ -66,7 +89,7 @@ function playSnare(when, vel) {
   const noiseGain = audioCtx.createGain();
   noiseGain.gain.setValueAtTime(vel, when);
   noiseGain.gain.exponentialRampToValueAtTime(0.001, when + 0.18);
-  noise.connect(bandpass).connect(noiseGain).connect(masterGain);
+  noise.connect(bandpass).connect(noiseGain).connect(voiceBus);
   noise.start(when);
   noise.stop(when + 0.2);
 
@@ -76,7 +99,7 @@ function playSnare(when, vel) {
   osc.frequency.setValueAtTime(190, when);
   oscGain.gain.setValueAtTime(vel * 0.6, when);
   oscGain.gain.exponentialRampToValueAtTime(0.001, when + 0.12);
-  osc.connect(oscGain).connect(masterGain);
+  osc.connect(oscGain).connect(voiceBus);
   osc.start(when);
   osc.stop(when + 0.14);
 }
@@ -105,7 +128,7 @@ function playTom(when, vel, note) {
   osc.frequency.exponentialRampToValueAtTime(freq * 0.6, when + 0.35);
   gain.gain.setValueAtTime(vel, when);
   gain.gain.exponentialRampToValueAtTime(0.001, when + 0.38);
-  osc.connect(gain).connect(masterGain);
+  osc.connect(gain).connect(voiceBus);
   osc.start(when);
   osc.stop(when + 0.4);
 }
@@ -120,7 +143,7 @@ function playHihat(when, vel, open) {
   const decay = open ? 0.5 : 0.07;
   gain.gain.setValueAtTime(vel * 0.7, when);
   gain.gain.exponentialRampToValueAtTime(0.001, when + decay);
-  noise.connect(hp).connect(gain).connect(masterGain);
+  noise.connect(hp).connect(gain).connect(voiceBus);
   noise.start(when);
   noise.stop(when + decay + 0.02);
 }
@@ -134,7 +157,7 @@ function playCymbal(when, vel) {
   const gain = audioCtx.createGain();
   gain.gain.setValueAtTime(vel * 0.8, when);
   gain.gain.exponentialRampToValueAtTime(0.001, when + 1.1);
-  noise.connect(hp).connect(gain).connect(masterGain);
+  noise.connect(hp).connect(gain).connect(voiceBus);
   noise.start(when);
   noise.stop(when + 1.15);
 }
@@ -145,7 +168,7 @@ function playClick(when, vel) {
   const gain = audioCtx.createGain();
   gain.gain.setValueAtTime(vel * 0.5, when);
   gain.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
-  noise.connect(gain).connect(masterGain);
+  noise.connect(gain).connect(voiceBus);
   noise.start(when);
   noise.stop(when + 0.06);
 }
@@ -161,14 +184,6 @@ function playDrumSoundSynth(note, when, vel) {
 }
 
 export function playDrumSound(note, when, vel) {
-  if (percussionInstrument) {
-    percussionInstrument.start({
-      note,
-      velocity: Math.max(1, Math.round(vel * 127)),
-      time: when,
-    });
-    return;
-  }
   playDrumSoundSynth(note, when, vel);
 }
 
@@ -205,7 +220,7 @@ function playMelodicSynth(note, when, vel, noteDuration, program) {
 
   osc1.connect(gain);
   osc2.connect(osc2Gain).connect(gain);
-  gain.connect(filter).connect(masterGain);
+  gain.connect(filter).connect(voiceBus);
 
   const stopAt = holdEnd + patch.release + 0.02;
   osc1.start(when);
@@ -219,8 +234,12 @@ function playMelodicSynth(note, when, vel, noteDuration, program) {
  */
 function loadSmplrModule() {
   if (!smplrModulePromise) {
-    smplrModulePromise =
-      import("https://cdn.jsdelivr.net/npm/smplr/dist/index.mjs");
+    const suffix = smplrAttempts === 0 ? "" : `#retry-${smplrAttempts}`;
+    smplrAttempts++;
+    smplrModulePromise = import(`${SMPLR_URL}${suffix}`).catch((err) => {
+      smplrModulePromise = null;
+      throw err;
+    });
   }
   return smplrModulePromise;
 }
@@ -251,40 +270,16 @@ function loadMelodicInstrument(program) {
         `Falling back to synth for program ${program} (${name})`,
         err
       );
+      melodicInstrumentsLoading.delete(program);
       return null;
     });
   melodicInstrumentsLoading.set(program, promise);
   return promise;
 }
 
-function loadPercussionInstrument() {
-  if (percussionInstrument) return Promise.resolve(percussionInstrument);
-  if (percussionLoading) return percussionLoading;
-  percussionLoading = loadSmplrModule()
-    .then(
-      ({ Soundfont }) =>
-        new Soundfont(audioCtx, {
-          instrument: "percussion",
-          kit: SOUNDFONT_KIT,
-          destination: masterGain,
-        }).load
-    )
-    .then((instrument) => {
-      percussionInstrument = instrument;
-      return instrument;
-    })
-    .catch((err) => {
-      console.warn("Falling back to synthesized drums", err);
-      return null;
-    });
-  return percussionLoading;
-}
-
-export function preloadInstruments(programs, needsPercussion) {
+export function preloadInstruments(programs) {
   ensureAudio();
-  const tasks = [...programs].map(loadMelodicInstrument);
-  if (needsPercussion) tasks.push(loadPercussionInstrument());
-  return Promise.all(tasks);
+  return Promise.all([...programs].map(loadMelodicInstrument));
 }
 
 export function playMelodic(note, when, vel, noteDuration, program) {

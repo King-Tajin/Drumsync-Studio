@@ -4,11 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Drumsync Studio</title>
-    <link rel="icon" type="image/svg" href="favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
@@ -17,7 +17,7 @@
     <div class="app">
       <header class="app-header">
         <div class="brand">
-          <img src="icon.svg" alt="Logo" width="72" height="72">
+          <img src="icon.svg" alt="Logo" width="72" height="72" />
           <div class="brand-text">
             <h1>DRUMSYNC STUDIO</h1>
             <p>by Yellow Skipper Games</p>
@@ -266,6 +266,7 @@
               >
             </label>
             <div class="file-meta" id="fileMeta"></div>
+            <div class="file-error" id="fileError" role="alert" hidden></div>
           </div>
 
           <div class="panel-block">
@@ -329,7 +330,11 @@
       </main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"
+      integrity="sha384-oayW9+sNK13nMFV3qwnFvUVk2XMCOleWoCgn4Ng3VLzGbgWNGDsc7RE4InhhvpQe"
+      crossorigin="anonymous"
+    ></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>

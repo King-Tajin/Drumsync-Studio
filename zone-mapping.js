@@ -17,6 +17,8 @@ const melodicList = document.getElementById("melodicList");
 const melodicCount = document.getElementById("melodicCount");
 const rigSvg = document.getElementById("rigSvg");
 
+const flashTimers = new Map();
+
 let fileLoaded = false;
 let songDrumNotes = [];
 let songMelodicPrograms = [];
@@ -45,8 +47,15 @@ export function zonesForNote(note) {
 export function flashZone(zoneId) {
   const el = rigSvg.querySelector(`[data-zone="${zoneId}"]`);
   if (!el) return;
+  clearTimeout(flashTimers.get(zoneId));
   el.classList.add("lit");
-  setTimeout(() => el.classList.remove("lit"), 200);
+  flashTimers.set(
+    zoneId,
+    setTimeout(() => {
+      el.classList.remove("lit");
+      flashTimers.delete(zoneId);
+    }, 200)
+  );
 }
 
 function previewZone(zoneId) {
@@ -157,7 +166,13 @@ function wireDropTarget(el, targetZoneId) {
   el.addEventListener("drop", (e) => {
     e.preventDefault();
     el.classList.remove("drag-over");
-    const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+    let data;
+    try {
+      data = JSON.parse(e.dataTransfer.getData("text/plain"));
+    } catch {
+      return;
+    }
+    if (!data || !songDrumNotes.includes(data.note)) return;
     moveNoteToZone(data.note, targetZoneId);
   });
 }
