@@ -105,6 +105,11 @@ h2 {
   text-transform: uppercase;
 }
 
+.brand-credit {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .header-status {
   font-family: "JetBrains Mono", monospace;
   font-size: 12px;
