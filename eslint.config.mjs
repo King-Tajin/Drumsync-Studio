@@ -11,6 +11,9 @@ export default [
       sourceType: "module",
       globals: globals.browser,
     },
+    rules: {
+      "no-empty": ["error", { allowEmptyCatch: true }],
+    },
   },
   {
     files: ["functions/**/*.js"],

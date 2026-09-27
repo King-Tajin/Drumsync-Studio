@@ -561,3 +561,83 @@ input[type="range"] {
     padding: 12px;
   }
 }
+
+.led-status {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.led-connect-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.led-total-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.led-total-label input {
+  width: 70px;
+  background: var(--drum-fill-hi);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+}
+
+.led-zone-header,
+.led-zone-row {
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 40px;
+  gap: 8px;
+  align-items: center;
+}
+
+.led-zone-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  padding: 0 0 6px;
+}
+
+.led-zone-row {
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.led-zone-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.led-zone-start,
+.led-zone-count {
+  width: 56px;
+  background: var(--drum-fill-hi);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+}
+
+.led-zone-color {
+  width: 40px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}

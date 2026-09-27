@@ -14,6 +14,7 @@ import {
   renderMappingUI,
   wireMappingEvents,
 } from "./zone-mapping.js";
+import { pulseZone, wireLedEvents } from "./led-controller.js";
 
 /* global Midi */
 
@@ -154,7 +155,7 @@ function scheduleTrigger(note, vel, when, isDrum, noteDuration, program) {
     if (audioMode === "all" || zoneIds.length > 0) {
       playDrumSound(note, when, vel);
     }
-    if (zoneIds.length > 0) pendingFlashes.push({ when, zoneIds });
+    if (zoneIds.length > 0) pendingFlashes.push({ when, zoneIds, vel });
   } else if (audioMode === "all") {
     playMelodic(note, when, vel, noteDuration, program);
   }
@@ -165,8 +166,14 @@ function flushFlashes(now) {
   const latency = audioCtx.outputLatency || audioCtx.baseLatency || 0;
   const remaining = [];
   pendingFlashes.forEach((flash) => {
-    if (flash.when + latency <= now) flash.zoneIds.forEach(flashZone);
-    else remaining.push(flash);
+    if (flash.when + latency <= now) {
+      flash.zoneIds.forEach((zoneId) => {
+        flashZone(zoneId);
+        pulseZone(zoneId, flash.vel);
+      });
+    } else {
+      remaining.push(flash);
+    }
   });
   pendingFlashes = remaining;
 }
@@ -435,4 +442,5 @@ function wireEvents() {
 
 renderMappingUI();
 wireEvents();
+wireLedEvents();
 if (typeof Midi === "undefined") showLoadError(PARSER_MISSING_MESSAGE);
