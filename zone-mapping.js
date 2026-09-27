@@ -3,6 +3,7 @@ import {
   noteLabel,
   instrumentLabel,
   autoZoneForNote,
+  DEFAULT_ZONE_NOTE,
 } from "./gm-data.js";
 import { ensureAudio, getAudioContext, playDrumSound } from "./audio-engine.js";
 
@@ -62,7 +63,9 @@ function previewZone(zoneId) {
   ensureAudio();
   const when = getAudioContext().currentTime;
   flashZone(zoneId);
-  mapping[zoneId].forEach((note) => playDrumSound(note, when, 0.9));
+  const notes =
+    mapping[zoneId].length > 0 ? mapping[zoneId] : [DEFAULT_ZONE_NOTE[zoneId]];
+  notes.forEach((note) => playDrumSound(note, when, 0.9));
 }
 
 function moveNoteToZone(note, targetZoneId) {
