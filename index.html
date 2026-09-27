@@ -321,23 +321,27 @@
           </div>
 
           <div class="panel-block">
-            <h2>LED Sync (WLED via USB)</h2>
-            <div class="led-status" id="ledStatus">Not connected.</div>
-            <div class="led-connect-row">
-              <button class="btn" id="ledConnectBtn">Connect LEDs</button>
-              <label class="led-total-label">
-                Total LEDs
-                <input type="number" id="ledTotalInput" min="0" step="1" />
-              </label>
-            </div>
-            <div class="led-zone-header">
-              <span>Zone</span>
-              <span>Start</span>
-              <span>Count</span>
-              <span>Color</span>
-            </div>
-            <div class="led-zone-list" id="ledZoneList"></div>
-            <p class="hint-text">Requires Google Chrome.</p>
+            <details class="led-dropdown" id="ledDropdown">
+              <summary>LED Sync (WLED via USB)</summary>
+              <div class="led-dropdown-body">
+                <div class="led-status" id="ledStatus">Not connected.</div>
+                <div class="led-connect-row">
+                  <button class="btn" id="ledConnectBtn">Connect LEDs</button>
+                  <label class="led-total-label">
+                    Total LEDs
+                    <input type="number" id="ledTotalInput" min="0" step="1" />
+                  </label>
+                </div>
+                <div class="led-zone-header">
+                  <span>Zone</span>
+                  <span>Start</span>
+                  <span>Count</span>
+                  <span>Color</span>
+                </div>
+                <div class="led-zone-list" id="ledZoneList"></div>
+                <p class="hint-text">Requires Google Chrome.</p>
+              </div>
+            </details>
           </div>
 
           <div class="panel-block">
