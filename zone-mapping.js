@@ -6,6 +6,7 @@ import {
   DEFAULT_ZONE_NOTE,
 } from "./gm-data.js";
 import { ensureAudio, getAudioContext, playDrumSound } from "./audio-engine.js";
+import { pulseZone } from "./led-controller.js";
 
 const mapping = {};
 ZONES.forEach((zone) => {
@@ -63,6 +64,7 @@ function previewZone(zoneId) {
   ensureAudio();
   const when = getAudioContext().currentTime;
   flashZone(zoneId);
+  pulseZone(zoneId, 0.9);
   const notes =
     mapping[zoneId].length > 0 ? mapping[zoneId] : [DEFAULT_ZONE_NOTE[zoneId]];
   notes.forEach((note) => playDrumSound(note, when, 0.9));
