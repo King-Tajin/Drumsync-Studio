@@ -1,10 +1,10 @@
 import { ZONES } from "./gm-data.js";
 
 const STORAGE_KEY = "drumsync-led-config-v1";
-const DEFAULT_TOTAL_LEDS = 0;
+const DEFAULT_TOTAL_LEDS = 300;
 const DEFAULT_COLOR = "#ffb13d";
 const HOLD_MS = 40;
-const DECAY_MS = 180;
+const DECAY_MS = 115;
 const BAUD_RATE = 115200;
 
 let totalLeds = DEFAULT_TOTAL_LEDS;
