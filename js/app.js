@@ -69,11 +69,15 @@ const els = {
   seekBar: document.getElementById("seekBar"),
   timeDisplay: document.getElementById("timeDisplay"),
   volumeSlider: document.getElementById("volumeSlider"),
+  speedInput: document.getElementById("speedInput"),
+  speedGroup: document.getElementById("speedGroup"),
   audioModeToggle: document.getElementById("audioModeToggle"),
 };
 
 const LOOKAHEAD_SECONDS = 0.2;
 const TICK_MS = 25;
+const MIN_SPEED = 40;
+const MAX_SPEED = 100;
 const PARSER_MISSING_MESSAGE =
   "The MIDI parser failed to load. Check your connection and reload the page.";
 const SYNTH_FALLBACK_MESSAGE =
@@ -90,6 +94,7 @@ let isPlaying = false;
 let nextNoteIndex = 0;
 let ctxStartTime = 0;
 let startOffset = 0;
+let playbackSpeed = 1;
 let pendingFlashes = [];
 let timerId = null;
 let isScrubbing = false;
@@ -131,7 +136,7 @@ function rewindToPosition(position) {
 function stopPlayback(resetPosition, silence = true) {
   if (isPlaying && !resetPosition) {
     const now = getAudioContext().currentTime;
-    startOffset += now - ctxStartTime;
+    startOffset += (now - ctxStartTime) * playbackSpeed;
     flushFlashes(now);
   }
   isPlaying = false;
@@ -182,20 +187,23 @@ function flushFlashes(now) {
 function tick() {
   if (!isPlaying) return;
   const now = getAudioContext().currentTime;
-  const elapsed = startOffset + (now - ctxStartTime);
+  const elapsed = startOffset + (now - ctxStartTime) * playbackSpeed;
 
   while (
     nextNoteIndex < notesFlat.length &&
-    notesFlat[nextNoteIndex].time <= elapsed + LOOKAHEAD_SECONDS
+    notesFlat[nextNoteIndex].time <= elapsed + LOOKAHEAD_SECONDS * playbackSpeed
   ) {
     const n = notesFlat[nextNoteIndex];
-    const when = Math.max(now, ctxStartTime + (n.time - startOffset));
+    const when = Math.max(
+      now,
+      ctxStartTime + (n.time - startOffset) / playbackSpeed
+    );
     scheduleTrigger(
       n.midi,
       n.velocity || 0.8,
       when,
       n.isDrum,
-      n.duration,
+      n.duration / playbackSpeed,
       n.program
     );
     nextNoteIndex++;
@@ -215,6 +223,36 @@ function startPlayback() {
   isPlaying = true;
   els.playBtn.textContent = "Pause";
   startTimer();
+}
+
+function applySpeed(percent) {
+  const next = percent / 100;
+  if (next === playbackSpeed) return;
+  if (isPlaying) {
+    const now = getAudioContext().currentTime;
+    startOffset += (now - ctxStartTime) * playbackSpeed;
+    ctxStartTime = now;
+  }
+  playbackSpeed = next;
+}
+
+function commitSpeedInput() {
+  const parsed = parseInt(els.speedInput.value, 10);
+  els.speedInput.value = String(
+    Number.isFinite(parsed)
+      ? Math.min(MAX_SPEED, Math.max(MIN_SPEED, parsed))
+      : MAX_SPEED
+  );
+  syncSpeed();
+}
+
+function syncSpeed() {
+  if (audioMode !== "mapped") {
+    applySpeed(MAX_SPEED);
+    return;
+  }
+  const value = parseInt(els.speedInput.value, 10);
+  if (value >= MIN_SPEED && value <= MAX_SPEED) applySpeed(value);
 }
 
 function seekTo(fraction) {
@@ -312,6 +350,8 @@ function applyParsedMidi(file, parsed) {
   );
 
   stopPlayback(true);
+  els.speedInput.value = String(MAX_SPEED);
+  syncSpeed();
   els.fileStatus.textContent = file.name;
   els.dropLabel.textContent = file.name;
   els.fileMeta.textContent = baseFileMeta();
@@ -426,6 +466,12 @@ function wireEvents() {
     setMasterVolume(parseFloat(els.volumeSlider.value));
   });
 
+  els.speedInput.addEventListener("input", () => {
+    syncSpeed();
+  });
+  els.speedInput.addEventListener("change", commitSpeedInput);
+  els.speedInput.addEventListener("blur", commitSpeedInput);
+
   els.audioModeToggle.querySelectorAll(".segment").forEach((btn) => {
     btn.addEventListener("click", () => {
       els.audioModeToggle
@@ -433,6 +479,8 @@ function wireEvents() {
         .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       audioMode = btn.dataset.mode;
+      els.speedGroup.hidden = audioMode !== "mapped";
+      syncSpeed();
     });
   });
 

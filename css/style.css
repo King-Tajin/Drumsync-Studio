@@ -450,8 +450,35 @@ input[type="range"] {
   color: var(--text-dim);
 }
 
-.volume-row input {
+.volume-row input[type="range"] {
   flex: 1;
+  min-width: 0;
+}
+
+.volume-row input[type="number"] {
+  width: 56px;
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.speed-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.speed-group[hidden] {
+  display: none;
+}
+
+.speed-unit {
+  margin-left: -6px;
 }
 
 .segmented {
