@@ -1,6 +1,13 @@
 import { categorize, familyPatchFor, GM_INSTRUMENT_NAMES } from "./gm-data.js";
 
-const SOUNDFONT_KIT = "FluidR3_GM";
+const SOUNDFONT_KIT_STORAGE_KEY = "drumsyncSoundfontKit";
+const DEFAULT_SOUNDFONT_KIT = "FluidR3_GM";
+
+export const SOUNDFONT_KITS = [
+  { id: "FluidR3_GM", label: "FluidR3 GM (default)" },
+  { id: "MusyngKite", label: "Musyng Kite" },
+];
+
 const SMPLR_URL = "https://cdn.jsdelivr.net/npm/smplr/dist/index.mjs";
 const SAMPLE_CACHE_NAME = "smplr";
 const SAMPLE_CACHE_TTL_MS = 3 * 4 * 7 * 24 * 60 * 60 * 1000;
@@ -13,6 +20,16 @@ let voiceBus = null;
 let smplrModulePromise = null;
 let smplrAttempts = 0;
 let sampleCacheReady = null;
+
+function readStoredKit() {
+  try {
+    const stored = localStorage.getItem(SOUNDFONT_KIT_STORAGE_KEY);
+    if (SOUNDFONT_KITS.some((kit) => kit.id === stored)) return stored;
+  } catch {}
+  return DEFAULT_SOUNDFONT_KIT;
+}
+
+let soundfontKit = readStoredKit();
 
 const melodicInstruments = new Map();
 const melodicInstrumentsLoading = new Map();
@@ -264,12 +281,41 @@ function loadSmplrModule() {
   return smplrModulePromise;
 }
 
+function instrumentKey(kit, program) {
+  return `${kit}:${program}`;
+}
+
+function releaseMelodicInstruments() {
+  melodicInstruments.forEach((instrument) => {
+    if (instrument.scheduler) instrument.scheduler.stop();
+    instrument.stop();
+  });
+  melodicInstruments.clear();
+  melodicInstrumentsLoading.clear();
+}
+
+export function getSoundfontKit() {
+  return soundfontKit;
+}
+
+export function setSoundfontKit(kitId) {
+  if (kitId === soundfontKit) return;
+  if (!SOUNDFONT_KITS.some((kit) => kit.id === kitId)) return;
+  releaseMelodicInstruments();
+  soundfontKit = kitId;
+  try {
+    localStorage.setItem(SOUNDFONT_KIT_STORAGE_KEY, kitId);
+  } catch {}
+}
+
 function loadMelodicInstrument(program) {
-  if (melodicInstruments.has(program)) {
-    return Promise.resolve(melodicInstruments.get(program));
+  const kit = soundfontKit;
+  const key = instrumentKey(kit, program);
+  if (melodicInstruments.has(key)) {
+    return Promise.resolve(melodicInstruments.get(key));
   }
-  if (melodicInstrumentsLoading.has(program)) {
-    return melodicInstrumentsLoading.get(program);
+  if (melodicInstrumentsLoading.has(key)) {
+    return melodicInstrumentsLoading.get(key);
   }
   const name = GM_INSTRUMENT_NAMES[program] || "acoustic_grand_piano";
   const promise = loadSmplrModule()
@@ -277,24 +323,28 @@ function loadMelodicInstrument(program) {
       ({ Soundfont, CacheStorage }) =>
         new Soundfont(audioCtx, {
           instrument: name,
-          kit: SOUNDFONT_KIT,
+          kit,
           destination: masterGain,
           storage: CacheStorage(),
         }).load
     )
     .then((instrument) => {
-      melodicInstruments.set(program, instrument);
+      if (kit !== soundfontKit) {
+        instrument.stop();
+        return null;
+      }
+      melodicInstruments.set(key, instrument);
       return instrument;
     })
     .catch((err) => {
       console.warn(
-        `Falling back to synth for program ${program} (${name})`,
+        `Falling back to synth for program ${program} (${name}, ${kit})`,
         err
       );
-      melodicInstrumentsLoading.delete(program);
+      melodicInstrumentsLoading.delete(key);
       return null;
     });
-  melodicInstrumentsLoading.set(program, promise);
+  melodicInstrumentsLoading.set(key, promise);
   return promise;
 }
 
@@ -304,7 +354,9 @@ export function preloadInstruments(programs) {
 }
 
 export function playMelodic(note, when, vel, noteDuration, program) {
-  const instrument = melodicInstruments.get(program || 0);
+  const instrument = melodicInstruments.get(
+    instrumentKey(soundfontKit, program || 0)
+  );
   if (instrument) {
     instrument.start({
       note,

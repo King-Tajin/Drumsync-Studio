@@ -6,6 +6,9 @@ import {
   playDrumSound,
   playMelodic,
   stopAllSounds,
+  SOUNDFONT_KITS,
+  getSoundfontKit,
+  setSoundfontKit,
 } from "./audio-engine.js";
 import {
   resetMapping,
@@ -40,6 +43,7 @@ const els = {
   speedInput: document.getElementById("speedInput"),
   speedGroup: document.getElementById("speedGroup"),
   audioModeToggle: document.getElementById("audioModeToggle"),
+  soundfontSelect: document.getElementById("soundfontSelect"),
 };
 
 const LOOKAHEAD_SECONDS = 0.2;
@@ -64,6 +68,8 @@ let timerId = null;
 let isScrubbing = false;
 let pausedByVisibility = false;
 let loadToken = 0;
+let hasFile = false;
+let currentPrograms = new Set();
 
 function formatTime(t) {
   const safe = Number.isFinite(t) && t > 0 ? t : 0;
@@ -243,11 +249,33 @@ function clearLoadError() {
   els.fileError.hidden = true;
 }
 
-function applyParsedMidi(file, parsed) {
+function loadInstrumentSounds() {
   const token = ++loadToken;
+  if (currentPrograms.size === 0) {
+    els.playBtn.disabled = false;
+    els.soundfontSelect.disabled = false;
+    els.fileMeta.textContent = baseFileMeta();
+    return;
+  }
+  els.playBtn.disabled = true;
+  els.soundfontSelect.disabled = true;
+  els.fileMeta.textContent = `${baseFileMeta()}\nLoading instrument sounds...`;
+  preloadInstruments(currentPrograms).then((instruments) => {
+    if (token !== loadToken) return;
+    els.playBtn.disabled = false;
+    els.soundfontSelect.disabled = false;
+    els.fileMeta.textContent = instruments.every(Boolean)
+      ? baseFileMeta()
+      : `${baseFileMeta()}\n${SYNTH_FALLBACK_MESSAGE}`;
+  });
+}
+
+function applyParsedMidi(file, parsed) {
   notesFlat = parsed.notes;
   duration = parsed.duration;
   bpm = parsed.bpm;
+  hasFile = true;
+  currentPrograms = parsed.programSet;
 
   resetMapping(
     [...parsed.drumNoteSet].sort((a, b) => a - b),
@@ -265,19 +293,17 @@ function applyParsedMidi(file, parsed) {
   els.seekBar.disabled = false;
 
   renderMappingUI();
+  loadInstrumentSounds();
+}
 
-  if (parsed.programSet.size === 0) {
-    els.playBtn.disabled = false;
-    return;
-  }
-  els.fileMeta.textContent = `${baseFileMeta()}\nLoading instrument sounds...`;
-  preloadInstruments(parsed.programSet).then((instruments) => {
-    if (token !== loadToken) return;
-    els.playBtn.disabled = false;
-    els.fileMeta.textContent = instruments.every(Boolean)
-      ? baseFileMeta()
-      : `${baseFileMeta()}\n${SYNTH_FALLBACK_MESSAGE}`;
+function populateSoundfontSelect() {
+  SOUNDFONT_KITS.forEach((kit) => {
+    const option = document.createElement("option");
+    option.value = kit.id;
+    option.textContent = kit.label;
+    els.soundfontSelect.appendChild(option);
   });
+  els.soundfontSelect.value = getSoundfontKit();
 }
 
 function loadMidiFile(file) {
@@ -389,11 +415,18 @@ function wireEvents() {
     });
   });
 
+  els.soundfontSelect.addEventListener("change", () => {
+    if (isPlaying) stopPlayback(false);
+    setSoundfontKit(els.soundfontSelect.value);
+    if (hasFile) loadInstrumentSounds();
+  });
+
   document.addEventListener("visibilitychange", handleVisibilityChange);
 
   wireMappingEvents();
 }
 
+populateSoundfontSelect();
 renderMappingUI();
 wireEvents();
 wireLedEvents();
