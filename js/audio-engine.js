@@ -2,6 +2,9 @@ import { categorize, familyPatchFor, GM_INSTRUMENT_NAMES } from "./gm-data.js";
 
 const SOUNDFONT_KIT = "FluidR3_GM";
 const SMPLR_URL = "https://cdn.jsdelivr.net/npm/smplr@1.0.0/dist/index.mjs";
+const SAMPLE_CACHE_NAME = "smplr";
+const SAMPLE_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const SAMPLE_CACHE_STAMP_KEY = "smplrCacheCreatedAt";
 
 let audioCtx = null;
 let masterGain = null;
@@ -9,6 +12,7 @@ let noiseBuffer = null;
 let voiceBus = null;
 let smplrModulePromise = null;
 let smplrAttempts = 0;
+let sampleCacheReady = null;
 
 const melodicInstruments = new Map();
 const melodicInstrumentsLoading = new Map();
@@ -229,6 +233,20 @@ function playMelodicSynth(note, when, vel, noteDuration, program) {
   osc2.stop(stopAt);
 }
 
+function expireSampleCache() {
+  if (!sampleCacheReady) {
+    sampleCacheReady = (async () => {
+      try {
+        const createdAt = Number(localStorage.getItem(SAMPLE_CACHE_STAMP_KEY));
+        if (createdAt && Date.now() - createdAt < SAMPLE_CACHE_TTL_MS) return;
+        await caches.delete(SAMPLE_CACHE_NAME);
+        localStorage.setItem(SAMPLE_CACHE_STAMP_KEY, String(Date.now()));
+      } catch {}
+    })();
+  }
+  return sampleCacheReady;
+}
+
 /**
  * @returns {Promise<any>}
  */
@@ -236,10 +254,12 @@ function loadSmplrModule() {
   if (!smplrModulePromise) {
     const suffix = smplrAttempts === 0 ? "" : `#retry-${smplrAttempts}`;
     smplrAttempts++;
-    smplrModulePromise = import(`${SMPLR_URL}${suffix}`).catch((err) => {
-      smplrModulePromise = null;
-      throw err;
-    });
+    smplrModulePromise = expireSampleCache()
+      .then(() => import(`${SMPLR_URL}${suffix}`))
+      .catch((err) => {
+        smplrModulePromise = null;
+        throw err;
+      });
   }
   return smplrModulePromise;
 }
@@ -254,11 +274,12 @@ function loadMelodicInstrument(program) {
   const name = GM_INSTRUMENT_NAMES[program] || "acoustic_grand_piano";
   const promise = loadSmplrModule()
     .then(
-      ({ Soundfont }) =>
+      ({ Soundfont, CacheStorage }) =>
         new Soundfont(audioCtx, {
           instrument: name,
           kit: SOUNDFONT_KIT,
           destination: masterGain,
+          storage: CacheStorage(),
         }).load
     )
     .then((instrument) => {
