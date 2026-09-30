@@ -1,0 +1,30 @@
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rig-stage {
+    width: min(100%, 95vw);
+  }
+}
+
+@media (max-width: 700px) {
+  .rig-stage {
+    width: min(100%, 90vw);
+  }
+}
+
+@media (max-width: 500px) {
+  .rig-stage {
+    width: min(100%, 85vw);
+  }
+
+  .rig-panel {
+    padding: 56px 12px 12px;
+  }
+
+  .rig-layout-picker {
+    top: 12px;
+    right: 12px;
+  }
+}

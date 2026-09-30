@@ -1,0 +1,27 @@
+.melodic-dropdown summary,
+.led-dropdown summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.melodic-dropdown summary::-webkit-details-marker,
+.led-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.melodic-dropdown summary::after,
+.led-dropdown summary::after {
+  content: "▸";
+  transition: transform 150ms ease;
+}
+
+.melodic-dropdown[open] summary::after,
+.led-dropdown[open] summary::after {
+  transform: rotate(90deg);
+}

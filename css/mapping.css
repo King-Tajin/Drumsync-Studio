@@ -1,0 +1,99 @@
+.hint-text {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border: 1px dashed var(--panel-border);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.palette.drag-over {
+  border-color: var(--accent);
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
+  border-radius: 6px;
+  transition: outline-color 120ms ease;
+  outline: 1px dashed transparent;
+}
+
+.chip-list.drag-over {
+  outline-color: var(--accent);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--drum-fill-hi);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--text);
+  cursor: grab;
+}
+
+.chip.dragging {
+  opacity: 0.4;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 4px;
+  margin: -4px -6px -4px 0;
+}
+
+.chip-remove:hover {
+  color: var(--danger);
+}
+
+.chip-static {
+  cursor: default;
+}
+
+.melodic-dropdown {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.melodic-dropdown summary {
+  padding: 10px 12px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.melodic-dropdown[open] summary {
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.melodic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  max-height: 160px;
+  overflow-y: auto;
+}

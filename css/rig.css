@@ -1,0 +1,186 @@
+.rig-panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 60px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#rigSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.rig-stage {
+  position: relative;
+  width: 100%;
+  max-width: 1265px;
+  aspect-ratio: 1340 / 680;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.rig-stage {
+  --toms-shift: 20.15%;
+  --bass-left: 2.9%;
+  --cymbal-left: 82%;
+}
+
+.rig-stage[data-layout="bass-right"] {
+  --toms-shift: 0%;
+  --bass-left: 77.5%;
+  --cymbal-left: 65%;
+}
+
+#rigToms {
+  transform: translate(195px, 0);
+}
+
+#rigBass {
+  transform: translate(-1075px, 0);
+}
+
+.rig-stage[data-layout="bass-right"] #rigToms,
+.rig-stage[data-layout="bass-right"] #rigBass {
+  transform: translate(-75px, 0);
+}
+
+.rig-layout-picker {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.rig-layout-picker select {
+  background: var(--drum-fill-hi);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+
+.rig-layout-picker select:hover,
+.rig-layout-picker select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.rig-hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.drum-shadow {
+  fill: #000;
+  opacity: 0.35;
+}
+
+.drum-rim {
+  fill: none;
+  stroke: var(--rim);
+  stroke-width: 6;
+}
+
+.drum-head {
+  fill: var(--drum-fill);
+  stroke: var(--drum-fill-hi);
+  stroke-width: 2;
+  transition:
+    fill 220ms ease-out,
+    filter 220ms ease-out;
+  cursor: pointer;
+}
+
+.rod-line {
+  stroke: var(--rim);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition:
+    stroke 180ms ease-out,
+    filter 180ms ease-out;
+  cursor: pointer;
+}
+
+.rod-cymbal {
+  fill: var(--drum-fill-hi);
+  stroke: var(--rim);
+  stroke-width: 2;
+  transition:
+    fill 180ms ease-out,
+    filter 180ms ease-out;
+  cursor: pointer;
+}
+
+.drum.lit .drum-head {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 18px var(--accent-soft))
+    drop-shadow(0 0 34px var(--accent-soft));
+}
+
+.drum.lit .rod-line {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 12px var(--accent-soft));
+}
+
+.drum.lit .rod-cymbal {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 18px var(--accent-soft));
+}
+
+.stand-bar,
+.stand-leg {
+  stroke: var(--rim);
+  stroke-width: 4;
+}
+
+.drop-slot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.drop-slot h3 {
+  margin: 0;
+  font-size: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
+}
+
+.drop-slot .chip-list {
+  flex: 1;
+  border: 1px dashed var(--panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  gap: 8px;
+  min-height: 56px;
+  overflow-y: auto;
+  align-content: flex-start;
+}
