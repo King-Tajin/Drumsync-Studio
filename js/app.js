@@ -16,46 +16,14 @@ import {
 } from "./zone-mapping.js";
 import { pulseZone, wireLedEvents } from "./led-controller.js";
 import { wireLayoutEvents } from "./rig-layout.js";
-
-/* global Midi */
-
-/**
- * @typedef {Object} MidiNote
- * @property {number} time
- * @property {number} midi
- * @property {number} velocity
- * @property {number} duration
- */
-
-/**
- * @typedef {Object} MidiInstrument
- * @property {number} number
- * @property {boolean} percussion
- */
-
-/**
- * @typedef {Object} MidiTrack
- * @property {number} channel
- * @property {MidiInstrument} instrument
- * @property {MidiNote[]} notes
- */
-
-/**
- * @typedef {Object} MidiTempo
- * @property {number} bpm
- */
-
-/**
- * @typedef {Object} MidiHeader
- * @property {MidiTempo[]} tempos
- */
-
-/**
- * @typedef {Object} MidiFile
- * @property {MidiTrack[]} tracks
- * @property {number} duration
- * @property {MidiHeader} header
- */
+import {
+  MidiLoadError,
+  PARSER_MISSING_MESSAGE,
+  isMidiFile,
+  isParserAvailable,
+  parseMidiBuffer,
+  pickMidiFile,
+} from "./midi-parser.js";
 
 const els = {
   fileStatus: document.getElementById("fileStatus"),
@@ -78,13 +46,9 @@ const LOOKAHEAD_SECONDS = 0.2;
 const TICK_MS = 25;
 const MIN_SPEED = 40;
 const MAX_SPEED = 100;
-const PARSER_MISSING_MESSAGE =
-  "The MIDI parser failed to load. Check your connection and reload the page.";
 const SYNTH_FALLBACK_MESSAGE =
   "Some instrument sounds couldn't load, using basic synth. Reload the file to retry.";
 const UNREADABLE_MESSAGE = "That file couldn't be read as a MIDI file.";
-
-class MidiLoadError extends Error {}
 
 let audioMode = "all";
 let notesFlat = [];
@@ -279,65 +243,6 @@ function clearLoadError() {
   els.fileError.hidden = true;
 }
 
-function isMidiFile(file) {
-  return /\.midi?$/i.test(file.name);
-}
-
-function pickMidiFile(fileList) {
-  const files = Array.from(fileList);
-  return files.find(isMidiFile) || files[0] || null;
-}
-
-function parseMidiBuffer(buffer) {
-  if (typeof Midi === "undefined") {
-    throw new MidiLoadError(PARSER_MISSING_MESSAGE);
-  }
-  /** @type {MidiFile} */
-  const midi = new Midi(buffer);
-  const notes = [];
-  const drumNoteSet = new Set();
-  const programSet = new Set();
-
-  midi.tracks.forEach((track) => {
-    const isDrum =
-      track.channel === 9 || (track.instrument && track.instrument.percussion);
-    const program = track.instrument ? track.instrument.number : 0;
-    track.notes.forEach((n) => {
-      notes.push({
-        time: n.time,
-        midi: n.midi,
-        velocity: n.velocity,
-        duration: n.duration,
-        isDrum,
-        program,
-      });
-      if (isDrum) drumNoteSet.add(n.midi);
-      else programSet.add(program);
-    });
-  });
-
-  if (notes.length === 0) {
-    throw new MidiLoadError("This MIDI file doesn't contain any notes.");
-  }
-  notes.sort((a, b) => a.time - b.time);
-
-  const lastEnd = notes.reduce(
-    (max, n) => Math.max(max, n.time + n.duration),
-    0
-  );
-  const tempo = midi.header.tempos[0];
-  return {
-    notes,
-    drumNoteSet,
-    programSet,
-    duration:
-      Number.isFinite(midi.duration) && midi.duration > 0
-        ? midi.duration
-        : lastEnd,
-    bpm: (tempo && tempo.bpm) || 120,
-  };
-}
-
 function applyParsedMidi(file, parsed) {
   const token = ++loadToken;
   notesFlat = parsed.notes;
@@ -493,4 +398,4 @@ renderMappingUI();
 wireEvents();
 wireLedEvents();
 wireLayoutEvents();
-if (typeof Midi === "undefined") showLoadError(PARSER_MISSING_MESSAGE);
+if (!isParserAvailable()) showLoadError(PARSER_MISSING_MESSAGE);
