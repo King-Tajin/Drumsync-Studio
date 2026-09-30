@@ -136,7 +136,7 @@ export const GM_INSTRUMENT_NAMES = [
   "lead_5_charang",
   "lead_6_voice",
   "lead_7_fifths",
-  "lead_8_bass_lead",
+  "lead_8_bass__lead",
   "pad_1_new_age",
   "pad_2_warm",
   "pad_3_polysynth",
@@ -429,7 +429,7 @@ export function noteLabel(note) {
 export function instrumentLabel(program) {
   const raw = GM_INSTRUMENT_NAMES[program] || `Program ${program}`;
   return raw
-    .split("_")
+    .split(/_+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
