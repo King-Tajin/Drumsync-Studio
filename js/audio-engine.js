@@ -5,7 +5,7 @@ const DEFAULT_SOUNDFONT_KIT = "FluidR3_GM";
 
 export const SOUNDFONT_KITS = [
   { id: "FluidR3_GM", label: "FluidR3 GM (default)" },
-  { id: "MusyngKite", label: "Musyng Kite" },
+  { id: "MusyngKite", label: "Musyng Kite (more realistic)" },
 ];
 
 const SMPLR_URL = "https://cdn.jsdelivr.net/npm/smplr/dist/index.mjs";
@@ -19,7 +19,8 @@ let noiseBuffer = null;
 let voiceBus = null;
 let smplrModulePromise = null;
 let smplrAttempts = 0;
-let sampleCacheReady = null;
+let legacySampleCacheCleared = null;
+const sampleCachesReady = new Map();
 
 function readStoredKit() {
   try {
@@ -250,18 +251,43 @@ function playMelodicSynth(note, when, vel, noteDuration, program) {
   osc2.stop(stopAt);
 }
 
-function expireSampleCache() {
-  if (!sampleCacheReady) {
-    sampleCacheReady = (async () => {
+function sampleCacheName(kit) {
+  return `${SAMPLE_CACHE_NAME}-${kit}`;
+}
+
+function sampleCacheStampKey(kit) {
+  return `${SAMPLE_CACHE_STAMP_KEY}-${kit}`;
+}
+
+function clearLegacySampleCache() {
+  if (!legacySampleCacheCleared) {
+    legacySampleCacheCleared = (async () => {
       try {
-        const createdAt = Number(localStorage.getItem(SAMPLE_CACHE_STAMP_KEY));
-        if (createdAt && Date.now() - createdAt < SAMPLE_CACHE_TTL_MS) return;
         await caches.delete(SAMPLE_CACHE_NAME);
-        localStorage.setItem(SAMPLE_CACHE_STAMP_KEY, String(Date.now()));
+        localStorage.removeItem(SAMPLE_CACHE_STAMP_KEY);
       } catch {}
     })();
   }
-  return sampleCacheReady;
+  return legacySampleCacheCleared;
+}
+
+function expireSampleCache(kit) {
+  if (!sampleCachesReady.has(kit)) {
+    sampleCachesReady.set(
+      kit,
+      (async () => {
+        await clearLegacySampleCache();
+        try {
+          const stampKey = sampleCacheStampKey(kit);
+          const createdAt = Number(localStorage.getItem(stampKey));
+          if (createdAt && Date.now() - createdAt < SAMPLE_CACHE_TTL_MS) return;
+          await caches.delete(sampleCacheName(kit));
+          localStorage.setItem(stampKey, String(Date.now()));
+        } catch {}
+      })()
+    );
+  }
+  return sampleCachesReady.get(kit);
 }
 
 /**
@@ -271,12 +297,10 @@ function loadSmplrModule() {
   if (!smplrModulePromise) {
     const suffix = smplrAttempts === 0 ? "" : `#retry-${smplrAttempts}`;
     smplrAttempts++;
-    smplrModulePromise = expireSampleCache()
-      .then(() => import(`${SMPLR_URL}${suffix}`))
-      .catch((err) => {
-        smplrModulePromise = null;
-        throw err;
-      });
+    smplrModulePromise = import(`${SMPLR_URL}${suffix}`).catch((err) => {
+      smplrModulePromise = null;
+      throw err;
+    });
   }
   return smplrModulePromise;
 }
@@ -318,14 +342,14 @@ function loadMelodicInstrument(program) {
     return melodicInstrumentsLoading.get(key);
   }
   const name = GM_INSTRUMENT_NAMES[program] || "acoustic_grand_piano";
-  const promise = loadSmplrModule()
+  const promise = Promise.all([loadSmplrModule(), expireSampleCache(kit)])
     .then(
-      ({ Soundfont, CacheStorage }) =>
+      ([{ Soundfont, CacheStorage }]) =>
         new Soundfont(audioCtx, {
           instrument: name,
           kit,
           destination: masterGain,
-          storage: CacheStorage(),
+          storage: CacheStorage(sampleCacheName(kit)),
         }).load
     )
     .then((instrument) => {
