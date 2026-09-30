@@ -15,6 +15,7 @@ import {
   wireMappingEvents,
 } from "./zone-mapping.js";
 import { pulseZone, wireLedEvents } from "./led-controller.js";
+import { wireLayoutEvents } from "./rig-layout.js";
 
 /* global Midi */
 
@@ -443,4 +444,5 @@ function wireEvents() {
 renderMappingUI();
 wireEvents();
 wireLedEvents();
+wireLayoutEvents();
 if (typeof Midi === "undefined") showLoadError(PARSER_MISSING_MESSAGE);
