@@ -11,9 +11,9 @@ export const SOUNDFONT_KITS = [
 export const MAIN_INSTRUMENT_COUNT = 120;
 const SAMPLE_BASE_URL = "https://gleitz.github.io/midi-js-soundfonts";
 const CACHE_CONCURRENCY = 4;
-const SMPLR_URL = "https://cdn.jsdelivr.net/npm/smplr/dist/index.mjs";
+const SMPLR_URL = "https://cdn.jsdelivr.net/npm/smplr@1.1.0/dist/index.mjs";
 const SAMPLE_CACHE_NAME = "smplr";
-const SAMPLE_CACHE_TTL_MS = 3 * 4 * 7 * 24 * 60 * 60 * 1000;
+const SAMPLE_CACHE_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const SAMPLE_CACHE_STAMP_KEY = "smplrCacheCreatedAt";
 
 let audioCtx = null;
