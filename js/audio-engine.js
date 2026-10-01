@@ -8,6 +8,9 @@ export const SOUNDFONT_KITS = [
   { id: "MusyngKite", label: "Musyng Kite (more realistic)" },
 ];
 
+export const MAIN_INSTRUMENT_COUNT = 120;
+const SAMPLE_BASE_URL = "https://gleitz.github.io/midi-js-soundfonts";
+const CACHE_CONCURRENCY = 4;
 const SMPLR_URL = "https://cdn.jsdelivr.net/npm/smplr/dist/index.mjs";
 const SAMPLE_CACHE_NAME = "smplr";
 const SAMPLE_CACHE_TTL_MS = 3 * 4 * 7 * 24 * 60 * 60 * 1000;
@@ -303,6 +306,89 @@ function loadSmplrModule() {
     });
   }
   return smplrModulePromise;
+}
+
+function isSafari() {
+  const ua = navigator.userAgent;
+  return (
+    ua.includes("Safari") && !ua.includes("Chrome") && !ua.includes("Chromium")
+  );
+}
+
+function sampleFormat() {
+  const audio = document.createElement("audio");
+  const formats = isSafari() ? ["mp3"] : ["ogg", "mp3"];
+  const supported = formats.find((format) => {
+    const canPlay = audio.canPlayType(`audio/${format}`);
+    return canPlay === "probably" || canPlay === "maybe";
+  });
+  return supported || "mp3";
+}
+
+function instrumentUrl(kit, name) {
+  return `${SAMPLE_BASE_URL}/${kit}/${name}-${sampleFormat()}.js`;
+}
+
+async function openKitCache(kit) {
+  await expireSampleCache(kit);
+  return caches.open(sampleCacheName(kit));
+}
+
+export async function listUncachedPrograms() {
+  const kit = soundfontKit;
+  try {
+    const cache = await openKitCache(kit);
+    const pattern = new RegExp(`/${kit}/([a-z0-9_]+)-[a-z0-9]+\\.js$`);
+    const cachedNames = new Set();
+    (await cache.keys()).forEach((request) => {
+      const match = pattern.exec(request.url);
+      if (match) cachedNames.add(match[1]);
+    });
+    const missing = [];
+    for (let program = 0; program < MAIN_INSTRUMENT_COUNT; program++) {
+      if (!cachedNames.has(GM_INSTRUMENT_NAMES[program])) missing.push(program);
+    }
+    return missing;
+  } catch {
+    return null;
+  }
+}
+
+export async function cacheMissingInstruments(
+  programs,
+  onProgress,
+  isCancelled
+) {
+  const kit = soundfontKit;
+  const cache = await openKitCache(kit);
+  const queue = [...programs];
+  let done = 0;
+  let failed = 0;
+
+  async function worker() {
+    while (queue.length > 0 && !isCancelled()) {
+      const program = queue.shift();
+      const name = GM_INSTRUMENT_NAMES[program];
+      const url = instrumentUrl(kit, name);
+      let failure = null;
+      try {
+        const response = await fetch(url);
+        if (response.ok) await cache.put(url, response);
+        else failure = `HTTP ${response.status}`;
+      } catch (err) {
+        failure = err;
+      }
+      if (failure) {
+        failed++;
+        console.warn(`Failed to cache ${name} (${kit})`, failure);
+      }
+      done++;
+      onProgress(done, programs.length);
+    }
+  }
+
+  await Promise.all(Array.from({ length: CACHE_CONCURRENCY }, worker));
+  return { done, failed };
 }
 
 function instrumentKey(kit, program) {

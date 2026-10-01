@@ -9,6 +9,9 @@ import {
   SOUNDFONT_KITS,
   getSoundfontKit,
   setSoundfontKit,
+  MAIN_INSTRUMENT_COUNT,
+  listUncachedPrograms,
+  cacheMissingInstruments,
 } from "./audio-engine.js";
 import {
   resetMapping,
@@ -44,6 +47,7 @@ const els = {
   speedGroup: document.getElementById("speedGroup"),
   audioModeToggle: document.getElementById("audioModeToggle"),
   soundfontSelect: document.getElementById("soundfontSelect"),
+  cacheSoundsBtn: document.getElementById("cacheSoundsBtn"),
 };
 
 const LOOKAHEAD_SECONDS = 0.2;
@@ -52,6 +56,7 @@ const MIN_SPEED = 40;
 const MAX_SPEED = 100;
 const SYNTH_FALLBACK_MESSAGE =
   "Some instrument sounds couldn't load, using basic synth. Reload the file to retry.";
+const APPROX_INSTRUMENT_MB = 2.7;
 const UNREADABLE_MESSAGE = "That file couldn't be read as a MIDI file.";
 
 let audioMode = "all";
@@ -70,6 +75,13 @@ let pausedByVisibility = false;
 let loadToken = 0;
 let hasFile = false;
 let currentPrograms = new Set();
+let isLoadingSounds = false;
+let isCachingSounds = false;
+let cacheCancelled = false;
+let cacheProgress = { done: 0, total: 0 };
+let missingPrograms = null;
+let cacheUnavailable = false;
+let cacheStatusToken = 0;
 
 function formatTime(t) {
   const safe = Number.isFinite(t) && t > 0 ? t : 0;
@@ -249,21 +261,93 @@ function clearLoadError() {
   els.fileError.hidden = true;
 }
 
+function renderSoundfontControls() {
+  const button = els.cacheSoundsBtn;
+  els.soundfontSelect.disabled = isLoadingSounds || isCachingSounds;
+  button.hidden = cacheUnavailable;
+  if (cacheUnavailable) return;
+  if (isCachingSounds) {
+    button.disabled = cacheCancelled;
+    button.textContent = cacheCancelled
+      ? "Stopping..."
+      : `Caching ${cacheProgress.done}/${cacheProgress.total} (click to cancel)`;
+    return;
+  }
+  if (missingPrograms === null) {
+    button.disabled = true;
+    button.textContent = "Checking cache...";
+    return;
+  }
+  if (missingPrograms.length === 0) {
+    button.disabled = true;
+    button.textContent = `All ${MAIN_INSTRUMENT_COUNT} instruments cached`;
+    return;
+  }
+  const megabytes = Math.round(missingPrograms.length * APPROX_INSTRUMENT_MB);
+  button.disabled = isLoadingSounds;
+  button.textContent = `Cache ${missingPrograms.length} remaining (~${megabytes} MB)`;
+}
+
+function refreshCacheStatus() {
+  const token = ++cacheStatusToken;
+  listUncachedPrograms().then((missing) => {
+    if (token !== cacheStatusToken) return;
+    cacheUnavailable = missing === null;
+    missingPrograms = missing;
+    renderSoundfontControls();
+  });
+}
+
+async function cacheRemainingSounds() {
+  if (isCachingSounds) {
+    cacheCancelled = true;
+    renderSoundfontControls();
+    return;
+  }
+  if (!missingPrograms || missingPrograms.length === 0) return;
+  isCachingSounds = true;
+  cacheCancelled = false;
+  cacheProgress = { done: 0, total: missingPrograms.length };
+  renderSoundfontControls();
+  try {
+    await cacheMissingInstruments(
+      missingPrograms,
+      (done, total) => {
+        cacheProgress = { done, total };
+        renderSoundfontControls();
+      },
+      () => cacheCancelled
+    );
+  } catch (err) {
+    console.warn("Caching instruments failed", err);
+  } finally {
+    isCachingSounds = false;
+    cacheCancelled = false;
+    missingPrograms = null;
+    renderSoundfontControls();
+    refreshCacheStatus();
+  }
+}
+
 function loadInstrumentSounds() {
   const token = ++loadToken;
   if (currentPrograms.size === 0) {
     els.playBtn.disabled = false;
-    els.soundfontSelect.disabled = false;
+    isLoadingSounds = false;
+    renderSoundfontControls();
     els.fileMeta.textContent = baseFileMeta();
     return;
   }
   els.playBtn.disabled = true;
-  els.soundfontSelect.disabled = true;
+  isLoadingSounds = true;
+  renderSoundfontControls();
   els.fileMeta.textContent = `${baseFileMeta()}\nLoading instrument sounds...`;
   preloadInstruments(currentPrograms).then((instruments) => {
     if (token !== loadToken) return;
     els.playBtn.disabled = false;
-    els.soundfontSelect.disabled = false;
+    isLoadingSounds = false;
+    renderSoundfontControls();
+    refreshCacheStatus();
     els.fileMeta.textContent = instruments.every(Boolean)
       ? baseFileMeta()
       : `${baseFileMeta()}\n${SYNTH_FALLBACK_MESSAGE}`;
@@ -418,8 +502,13 @@ function wireEvents() {
   els.soundfontSelect.addEventListener("change", () => {
     if (isPlaying) stopPlayback(false);
     setSoundfontKit(els.soundfontSelect.value);
+    missingPrograms = null;
+    renderSoundfontControls();
+    refreshCacheStatus();
     if (hasFile) loadInstrumentSounds();
   });
+
+  els.cacheSoundsBtn.addEventListener("click", cacheRemainingSounds);
 
   document.addEventListener("visibilitychange", handleVisibilityChange);
 
@@ -427,6 +516,8 @@ function wireEvents() {
 }
 
 populateSoundfontSelect();
+renderSoundfontControls();
+refreshCacheStatus();
 renderMappingUI();
 wireEvents();
 wireLedEvents();

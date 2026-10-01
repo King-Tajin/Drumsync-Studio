@@ -64,3 +64,14 @@
   opacity: 0.5;
   cursor: progress;
 }
+
+.cache-sounds-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
