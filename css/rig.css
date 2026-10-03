@@ -3,7 +3,7 @@
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 14px;
-  padding: 60px 20px 20px;
+  padding: 88px 20px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -84,6 +84,71 @@
 .rig-layout-picker select:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.rig-lanes-toggle {
+  position: absolute;
+  top: 54px;
+  right: 14px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.rig-lanes-toggle input {
+  appearance: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--drum-fill-hi);
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.rig-lanes-toggle input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition:
+    transform 150ms ease,
+    background 150ms ease;
+}
+
+.rig-lanes-toggle input:checked {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.rig-lanes-toggle input:checked::after {
+  transform: translateX(16px);
+  background: var(--accent);
+}
+
+.rig-lanes-toggle input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rig-panel.lanes-active .drop-slot,
+.rig-panel.lanes-active .rig-hint {
+  display: none;
 }
 
 .rig-hint {

@@ -53,13 +53,22 @@
       </header>
 
       <main class="layout">
-        <section class="rig-panel">
+        <section class="rig-panel" id="rigPanel">
           <label class="rig-layout-picker" for="rigLayoutSelect">
             <span>Layout</span>
             <select id="rigLayoutSelect" autocomplete="off">
               <option value="bass-left" selected>Bass on left</option>
               <option value="bass-right">Bass on right</option>
             </select>
+          </label>
+          <label class="rig-lanes-toggle" for="lanesToggle">
+            <span>Falling lights</span>
+            <input
+              type="checkbox"
+              id="lanesToggle"
+              role="switch"
+              autocomplete="off"
+            />
           </label>
           <div class="rig-stage" id="rigStage" data-layout="bass-left">
             <svg

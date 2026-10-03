@@ -22,6 +22,7 @@ import {
 } from "./zone-mapping.js";
 import { pulseZone, wireLedEvents } from "./led-controller.js";
 import { wireLayoutEvents } from "./rig-layout.js";
+import { initNoteLanes, setLaneNotes, setLanesEnabled } from "./note-lanes.js";
 import {
   MidiLoadError,
   PARSER_MISSING_MESSAGE,
@@ -48,6 +49,7 @@ const els = {
   audioModeToggle: document.getElementById("audioModeToggle"),
   soundfontSelect: document.getElementById("soundfontSelect"),
   cacheSoundsBtn: document.getElementById("cacheSoundsBtn"),
+  lanesToggle: document.getElementById("lanesToggle"),
 };
 
 const LOOKAHEAD_SECONDS = 0.2;
@@ -95,6 +97,16 @@ function updateTimeDisplay(elapsed) {
   if (!isScrubbing && duration > 0) {
     els.seekBar.value = Math.floor((elapsed / duration) * 1000);
   }
+}
+
+function currentVisualPosition() {
+  if (!isPlaying) return startOffset;
+  const audioCtx = getAudioContext();
+  const latency = audioCtx.outputLatency || audioCtx.baseLatency || 0;
+  const elapsed =
+    startOffset +
+    (audioCtx.currentTime - ctxStartTime - latency) * playbackSpeed;
+  return Math.min(elapsed, duration);
 }
 
 function clearTimer() {
@@ -360,6 +372,9 @@ function applyParsedMidi(file, parsed) {
   bpm = parsed.bpm;
   hasFile = true;
   currentPrograms = parsed.programSet;
+  setLaneNotes(notesFlat);
+  els.lanesToggle.checked = false;
+  setLanesEnabled(false);
 
   resetMapping(
     [...parsed.drumNoteSet].sort((a, b) => a - b),
@@ -510,6 +525,10 @@ function wireEvents() {
 
   els.cacheSoundsBtn.addEventListener("click", cacheRemainingSounds);
 
+  els.lanesToggle.addEventListener("change", () => {
+    setLanesEnabled(els.lanesToggle.checked);
+  });
+
   document.addEventListener("visibilitychange", handleVisibilityChange);
 
   wireMappingEvents();
@@ -522,4 +541,9 @@ renderMappingUI();
 wireEvents();
 wireLedEvents();
 wireLayoutEvents();
+els.lanesToggle.checked = false;
+initNoteLanes({
+  getPosition: currentVisualPosition,
+  getSpeed: () => playbackSpeed,
+});
 if (!isParserAvailable()) showLoadError(PARSER_MISSING_MESSAGE);

@@ -20,11 +20,16 @@
   }
 
   .rig-panel {
-    padding: 56px 12px 12px;
+    padding: 84px 12px 12px;
   }
 
   .rig-layout-picker {
     top: 12px;
+    right: 12px;
+  }
+
+  .rig-lanes-toggle {
+    top: 52px;
     right: 12px;
   }
 }
